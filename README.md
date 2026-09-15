@@ -90,5 +90,8 @@ MIT. See `LICENSE`.
 
 ## Citation
 
-Please cite the manuscript above. This repository is archived on Zenodo; the DOI will
-be added on release.
+Please cite the manuscript above. This repository is archived on Zenodo:
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22761392.svg)](https://doi.org/10.5281/zenodo.22761392)
+
+10.5281/zenodo.22761392
