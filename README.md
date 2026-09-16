@@ -5,6 +5,8 @@ Analysis code accompanying:
 > Minocha J. Neuroendocrine and hepatocyte transcriptional programs are independently
 > elevated in STK11-mutant KRAS-driven lung adenocarcinoma. *Manuscript submitted.*
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22761392.svg)](https://doi.org/10.5281/zenodo.22761392)
+
 This repository reproduces every figure, table, and statistic in the manuscript from
 publicly available data. No private or restricted data are required.
 
@@ -14,6 +16,7 @@ publicly available data. No private or restricted data are required.
 |---|---|---|
 | TCGA-LUAD expression and mutations | NCI Genomic Data Commons | Downloaded programmatically in `analysis_01` via TCGAbiolinks |
 | GSE72094 | NCBI Gene Expression Omnibus | Downloaded programmatically in `analysis_01` |
+| GPL15048 platform annotation | NCBI GEO | Retrieved in `analysis_02` via `getGEO("GPL15048")` |
 | MSigDB Hallmark (H) and cell type (C8) | MSigDB | Retrieved via `msigdbr` |
 
 ## Scripts
@@ -33,9 +36,9 @@ Run in order. Each writes intermediate files consumed by the next.
 R ≥ 4.4.
 
 ```r
-install.packages(c("BiocManager", "dplyr", "msigdbr", "ashr"))
+install.packages(c("BiocManager", "dplyr", "msigdbr", "ashr", "writexl"))
 BiocManager::install(c("TCGAbiolinks", "SummarizedExperiment", "DESeq2",
-                       "GSVA", "org.Hs.eg.db"))
+                       "GSVA", "org.Hs.eg.db", "GEOquery"))
 ```
 
 Tested on R 4.6.1 with TCGAbiolinks 2.40.0, DESeq2 1.52.0, GSVA 2.6.6,
@@ -46,17 +49,25 @@ scoring. `analysis_01` will fail on machines with less available RAM.
 
 ## Two implementation notes
 
-**GEOquery fails on GSE72094.** `getGEO()` returns
-`parsing failed--expected only one '!series_data_table_begin'` because the series
-matrix uses the marker `!series_matrix_table_begin`. `analysis_01` parses the file
-manually.
+**GEOquery fails on the GSE72094 series matrix.** `getGEO("GSE72094")` returns
+`parsing failed--expected only one '!series_data_table_begin'` because the file uses the
+marker `!series_matrix_table_begin`. `analysis_01` therefore parses the series matrix
+manually. Note that this failure affects the *series* record only — the platform record
+is retrieved normally, see below.
 
-**GPL15048 has no usable annotation.** GSE72094 was profiled on a custom Rosetta/Merck
-array with no GEO `.annot` file. Probe identifiers do not match standard Affymetrix
-annotation — only 10 of 60,607 probes map via `hgu133plus2.db`. Probe IDs embed source
-accessions (`merck-NM_002431_at`), so `analysis_02` strips the prefix and suffix and
-maps the resulting RefSeq accessions through `org.Hs.eg.db`, recovering 18,077 unique
-symbols.
+**GPL15048 annotation.** GSE72094 was profiled on a custom Rosetta/Merck array whose
+probe identifiers do not match standard Affymetrix annotation; only 10 of 60,607 probes
+map via `hgu133plus2.db`. The platform record itself, however, carries a full annotation
+table with GenBank identifiers, Entrez gene identifiers and HGNC symbols, retrieved with
+`getGEO("GPL15048")` and accessed via `Table()`. Of 60,607 probes, 41,024 carry a gene
+symbol, giving 22,115 unique genes. Where several probes map to one symbol, the most
+variable is retained.
+
+*An earlier version of this analysis recovered symbols by parsing RefSeq accessions
+embedded in the probe names, which yielded 18,077 genes. That approach was replaced with
+the canonical platform annotation after Dr. Steven Eschrich (Moffitt Cancer Center)
+pointed out that the annotation table is available directly from GEO. All results in the
+manuscript use the canonical annotation.*
 
 ## Gene signatures
 
@@ -84,6 +95,12 @@ An exploratory drug-repurposing analysis using L1000 signature reversal and DepM
 PRISM data was performed during development and returned a null result. It is not part
 of the submitted manuscript and the corresponding code is not included here.
 
+## Acknowledgements
+
+Dr. Matthew Schabath and Dr. Steven Eschrich (Moffitt Cancer Center) responded to
+questions about GSE72094 and its platform annotation. Their input corrected the gene
+annotation used in this analysis.
+
 ## License
 
 MIT. See `LICENSE`.
@@ -91,7 +108,4 @@ MIT. See `LICENSE`.
 ## Citation
 
 Please cite the manuscript above. This repository is archived on Zenodo:
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22761392.svg)](https://doi.org/10.5281/zenodo.22761392)
-
 10.5281/zenodo.22761392
