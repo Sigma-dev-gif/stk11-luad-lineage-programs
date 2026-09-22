@@ -12,7 +12,7 @@
 
 library(DESeq2)
 library(SummarizedExperiment)
-library(org.Hs.eg.db)
+library(org.Hs.eg.db)   # retained for reference; not used for GSE72094
 library(dplyr)
 
 set.seed(42)
@@ -74,36 +74,37 @@ saveRDS(coldata, "tcga_stk11_coldata.rds")
 rm(rna_data, dds, vsd); gc()
 
 # ------------------------------------------------------------------
-# 2. GSE72094 — probe annotation
+# 2. GSE72094 — probe annotation from the canonical platform record
 #
-# GPL15048 is a custom Rosetta/Merck array. No GEO .annot file exists
-# and probe IDs do not match standard Affymetrix annotation (only 10
-# of 60,607 probes map via hgu133plus2.db). Probe IDs embed source
-# accessions, e.g. "merck-NM_002431_at". Symbols are recovered by
-# stripping the prefix and suffix and mapping RefSeq accessions.
+# GPL15048 is a custom Rosetta/Merck array. Probe IDs do not match standard
+# Affymetrix annotation packages (only 10 of 60,607 probes map via
+# hgu133plus2.db), but the platform record itself carries a full annotation
+# table with GenBank IDs, Entrez gene IDs and HGNC symbols.
+#
+# Note: getGEO("GSE72094") fails on the *series* matrix (see analysis_01),
+# but getGEO("GPL15048") retrieves the *platform* record normally.
+#
+# An earlier version of this script parsed RefSeq accessions out of the
+# probe names instead, yielding 18,077 genes. That was replaced after
+# Dr. Steven Eschrich (Moffitt Cancer Center) pointed out the canonical
+# annotation is available. The canonical table gives 22,115 genes.
 # ------------------------------------------------------------------
+library(GEOquery)
+
 dat     <- readRDS("gse72094_expr_krasmut.rds")
 pheno_B <- readRDS("gse72094_pheno.rds")
 
-acc <- dat$ID_REF
-acc <- sub("^merck2?-", "", acc)
-acc <- sub("_[a-z]?_?at$", "", acc)
-acc <- sub("\\..*$", "", acc)
+gpl <- getGEO("GPL15048")
+ann <- Table(gpl)
+ann$GeneSymbol <- trimws(as.character(ann$GeneSymbol))
+ann <- ann[!is.na(ann$GeneSymbol) & ann$GeneSymbol != "", c("ID", "GeneSymbol")]
 
-pm <- data.frame(probe = dat$ID_REF, acc = acc, stringsAsFactors = FALSE)
-rs <- pm[grepl("^[NX][MR]_", pm$acc), ]
+message("GPL15048: ", nrow(ann), " probes carry a symbol, ",
+        length(unique(ann$GeneSymbol)), " unique genes")
 
-sm <- AnnotationDbi::select(org.Hs.eg.db, keys = unique(rs$acc),
-                            columns = "SYMBOL", keytype = "REFSEQ")
-sm <- sm[!is.na(sm$SYMBOL), ]
-sm <- sm[!duplicated(sm$REFSEQ), ]
-rs <- merge(rs, sm, by.x = "acc", by.y = "REFSEQ")
-
-message("GSE72094: ", nrow(rs), " probes mapped to ",
-        length(unique(rs$SYMBOL)), " unique symbols")
-
-expr_B <- as.matrix(dat[match(rs$probe, dat$ID_REF), -1])
-expr_B <- collapse_symbols(expr_B, rs$SYMBOL)
+m      <- merge(data.frame(ID = dat$ID_REF, stringsAsFactors = FALSE), ann, by = "ID")
+expr_B <- as.matrix(dat[match(m$ID, dat$ID_REF), -1])
+expr_B <- collapse_symbols(expr_B, m$GeneSymbol)
 
 # Restrict to KRAS-mutant samples
 expr_B <- expr_B[, intersect(pheno_B$sample_id[pheno_B$kras == "Mut"],
