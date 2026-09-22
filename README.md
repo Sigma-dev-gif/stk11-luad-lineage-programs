@@ -5,7 +5,7 @@ Analysis code accompanying:
 > Minocha J. Neuroendocrine and hepatocyte transcriptional programs are independently
 > elevated in STK11-mutant KRAS-driven lung adenocarcinoma. *Manuscript submitted.*
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22761392.svg)](https://doi.org/10.5281/zenodo.22761392)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22761391.svg)](https://doi.org/10.5281/zenodo.22761391)
 
 This repository reproduces every figure, table, and statistic in the manuscript from
 publicly available data. No private or restricted data are required.
@@ -108,4 +108,4 @@ MIT. See `LICENSE`.
 ## Citation
 
 Please cite the manuscript above. This repository is archived on Zenodo:
-10.5281/zenodo.22761392
+10.5281/zenodo.22761391
